@@ -29,7 +29,6 @@ function getSavedDestinations() {
     const savedDestinations =
       localStorage.getItem(STORAGE_KEY);
 
-    // First load
     if (!savedDestinations) {
       const initialData = [...destinationsData];
 
@@ -44,7 +43,6 @@ function getSavedDestinations() {
     const parsedDestinations =
       JSON.parse(savedDestinations);
 
-    // Invalid localStorage data
     if (!Array.isArray(parsedDestinations)) {
       const initialData = [...destinationsData];
 
@@ -55,13 +53,6 @@ function getSavedDestinations() {
 
       return initialData;
     }
-
-    /*
-      Merge saved destinations with latest destinations.js.
-
-      Existing user changes are preserved.
-      New default destinations are automatically added.
-    */
 
     const mergedDestinations =
       parsedDestinations.map(
@@ -86,14 +77,12 @@ function getSavedDestinations() {
         }
       );
 
-    // IDs already saved
     const savedIds = new Set(
       mergedDestinations.map(
         (destination) => destination.id
       )
     );
 
-    // Names already saved
     const savedNames = new Set(
       mergedDestinations
         .map(
@@ -102,11 +91,6 @@ function getSavedDestinations() {
         )
         .filter(Boolean)
     );
-
-    /*
-      Add destinations from destinations.js
-      that are missing in localStorage.
-    */
 
     const newDefaultDestinations =
       destinationsData.filter(
@@ -131,7 +115,6 @@ function getSavedDestinations() {
       ...newDefaultDestinations,
     ];
 
-    // Save updated destination list
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(finalDestinations)
@@ -226,11 +209,27 @@ function Destinations() {
         destination.category === "Luxury"
     ).length;
 
+  /*
+    The summary cards represent all destinations.
+
+    Popular + Trending + Luxury are counted directly.
+
+    "New" represents the remaining destinations that
+    are not Popular, Trending, or Luxury.
+
+    This includes categories such as:
+    - New
+    - Spiritual
+    - Adventure
+
+    Therefore all destination cards are included
+    in the four summary numbers.
+  */
   const newCount =
-    destinations.filter(
-      (destination) =>
-        destination.category === "New"
-    ).length;
+    destinations.length -
+    popularCount -
+    trendingCount -
+    luxuryCount;
 
   /* =======================================================
      SEARCH + FILTER
@@ -266,10 +265,29 @@ function Destinations() {
             country.includes(search) ||
             category.includes(search);
 
-          const matchesStatus =
-            statusFilter === "All" ||
-            destination.category ===
+          let matchesStatus = true;
+
+          if (statusFilter === "All") {
+            matchesStatus = true;
+          } else if (
+            statusFilter === "New"
+          ) {
+            /*
+              New summary represents all destinations
+              that are not Popular, Trending or Luxury.
+            */
+            matchesStatus =
+              destination.category !==
+                "Popular" &&
+              destination.category !==
+                "Trending" &&
+              destination.category !==
+                "Luxury";
+          } else {
+            matchesStatus =
+              destination.category ===
               statusFilter;
+          }
 
           return (
             matchesSearch &&
@@ -313,7 +331,6 @@ function Destinations() {
   const handleFormSubmit = (
     formData
   ) => {
-    // EDIT
     if (editingDestination) {
       const updatedDestinations =
         destinations.map(
@@ -336,10 +353,7 @@ function Destinations() {
         "Destination updated successfully.",
         "success"
       );
-    }
-
-    // ADD
-    else {
+    } else {
       const newDestination = {
         ...formData,
         id: Date.now(),
@@ -418,9 +432,7 @@ function Destinations() {
   return (
     <div className="destinations-page">
 
-      {/* ===============================================
-          PAGE HEADER
-      =============================================== */}
+      {/* PAGE HEADER */}
 
       <div className="page-header">
         <div>
@@ -446,9 +458,7 @@ function Destinations() {
         </button>
       </div>
 
-      {/* ===============================================
-          DESTINATION SUMMARY
-      =============================================== */}
+      {/* DESTINATION SUMMARY */}
 
       <div className="destination-summary">
 
@@ -463,8 +473,7 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter ===
-                "Popular"
+              statusFilter === "Popular"
                 ? "All"
                 : "Popular"
             )
@@ -493,8 +502,7 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter ===
-                "Trending"
+              statusFilter === "Trending"
                 ? "All"
                 : "Trending"
             )
@@ -523,8 +531,7 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter ===
-                "Luxury"
+              statusFilter === "Luxury"
                 ? "All"
                 : "Luxury"
             )
@@ -542,7 +549,7 @@ function Destinations() {
           </div>
         </button>
 
-        {/* NEW */}
+        {/* NEW / OTHER */}
 
         <button
           type="button"
@@ -573,9 +580,7 @@ function Destinations() {
 
       </div>
 
-      {/* ===============================================
-          SEARCH + FILTER + VIEW
-      =============================================== */}
+      {/* SEARCH + FILTER + VIEW */}
 
       <div className="destination-toolbar">
 
@@ -663,9 +668,7 @@ function Destinations() {
         </div>
       </div>
 
-      {/* ===============================================
-          RESULTS
-      =============================================== */}
+      {/* RESULTS */}
 
       {filteredDestinations.length ===
       0 ? (
@@ -718,9 +721,7 @@ function Destinations() {
 
       )}
 
-      {/* ===============================================
-          ADD / EDIT MODAL
-      =============================================== */}
+      {/* ADD / EDIT MODAL */}
 
       <Modal
         isOpen={showForm}
@@ -735,9 +736,7 @@ function Destinations() {
         />
       </Modal>
 
-      {/* ===============================================
-          DELETE MODAL
-      =============================================== */}
+      {/* DELETE MODAL */}
 
       <ConfirmModal
         isOpen={Boolean(
