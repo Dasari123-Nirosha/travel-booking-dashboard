@@ -26,7 +26,7 @@ const ITEMS_PER_PAGE = 6;
 
 /* =========================================================
    LOAD TRIPS
-   ========================================================= */
+========================================================= */
 
 function getSavedTrips() {
   try {
@@ -53,7 +53,7 @@ function getSavedTrips() {
 
 /* =========================================================
    TRIPS PAGE
-   ========================================================= */
+========================================================= */
 
 function Trips() {
   const [trips, setTrips] =
@@ -102,7 +102,7 @@ function Trips() {
 
   /* =======================================================
      SAVE TRIPS
-     ======================================================= */
+  ======================================================= */
 
   const saveTrips = (updatedTrips) => {
     try {
@@ -137,7 +137,7 @@ function Trips() {
 
   /* =======================================================
      DESTINATION OPTIONS
-     ======================================================= */
+  ======================================================= */
 
   const destinationOptions = useMemo(() => {
     const destinations = trips
@@ -151,7 +151,7 @@ function Trips() {
 
   /* =======================================================
      FILTER + SORT
-     ======================================================= */
+  ======================================================= */
 
   const filteredTrips = useMemo(() => {
     const search =
@@ -414,7 +414,7 @@ function Trips() {
 
   /* =======================================================
      PAGINATION
-     ======================================================= */
+  ======================================================= */
 
   const totalPages = Math.max(
     1,
@@ -442,7 +442,7 @@ function Trips() {
 
   /* =======================================================
      FILTER UPDATES
-     ======================================================= */
+  ======================================================= */
 
   const updateSearch = (value) => {
     setSearchTerm(value);
@@ -481,7 +481,7 @@ function Trips() {
 
   /* =======================================================
      RESET
-     ======================================================= */
+  ======================================================= */
 
   const resetFilters = () => {
     setSearchTerm("");
@@ -496,7 +496,7 @@ function Trips() {
 
   /* =======================================================
      ADD
-     ======================================================= */
+  ======================================================= */
 
   const handleAdd = () => {
     setEditingTrip(null);
@@ -505,7 +505,7 @@ function Trips() {
 
   /* =======================================================
      EDIT
-     ======================================================= */
+  ======================================================= */
 
   const handleEdit = (trip) => {
     if (!trip) {
@@ -521,7 +521,7 @@ function Trips() {
 
   /* =======================================================
      VIEW
-     ======================================================= */
+  ======================================================= */
 
   const handleView = (trip) => {
     setSelectedTrip(trip);
@@ -529,7 +529,7 @@ function Trips() {
 
   /* =======================================================
      CREATE / UPDATE
-     ======================================================= */
+  ======================================================= */
 
   const handleFormSubmit = (formData) => {
     /* -----------------------------------------------------
@@ -556,7 +556,6 @@ function Trips() {
             ...trip,
             ...formData,
 
-            /* Always preserve original IDs */
             id:
               trip.id ??
               editingTrip.id ??
@@ -590,9 +589,6 @@ function Trips() {
       if (!saved) {
         return;
       }
-
-      /* If the edited trip is currently
-         being viewed, update that view too. */
 
       const updatedTrip =
         updatedTrips.find((trip) => {
@@ -684,7 +680,7 @@ function Trips() {
 
   /* =======================================================
      DELETE REQUEST
-     ======================================================= */
+  ======================================================= */
 
   const handleDeleteRequest = (
     trip
@@ -694,7 +690,7 @@ function Trips() {
 
   /* =======================================================
      DELETE
-     ======================================================= */
+  ======================================================= */
 
   const handleDelete = () => {
     if (!deleteTarget) {
@@ -777,7 +773,7 @@ function Trips() {
 
   /* =======================================================
      CLOSE FORM
-     ======================================================= */
+  ======================================================= */
 
   const closeForm = () => {
     setShowForm(false);
@@ -786,11 +782,14 @@ function Trips() {
 
   /* =======================================================
      RENDER
-     ======================================================= */
+  ======================================================= */
 
   return (
     <div className="trips-page">
-      {/* PAGE HEADER */}
+
+      {/* ===================================================
+          PAGE HEADER
+          =================================================== */}
 
       <div className="page-header">
         <div>
@@ -816,15 +815,23 @@ function Trips() {
         </button>
       </div>
 
-      {/* SUMMARY */}
+      {/* ===================================================
+          SUMMARY
+          =================================================== */}
 
       <div className="trip-summary">
+
+        {/* TOTAL */}
+
         <div className="summary-item">
           <span>Total Trips</span>
+
           <strong>
             {trips.length}
           </strong>
         </div>
+
+        {/* UPCOMING */}
 
         <div className="summary-item">
           <span>Upcoming</span>
@@ -840,6 +847,8 @@ function Trips() {
           </strong>
         </div>
 
+        {/* ACTIVE */}
+
         <div className="summary-item">
           <span>Active</span>
 
@@ -854,31 +863,46 @@ function Trips() {
           </strong>
         </div>
 
+        {/* COMPLETED */}
+
         <div className="summary-item">
-          <span>
-            Available Seats
-          </span>
+          <span>Completed</span>
 
           <strong>
-            {trips.reduce(
-              (
-                total,
-                trip
-              ) =>
-                total +
-                Number(
-                  trip.availableSeats ??
-                    0
-                ),
-              0
-            )}
+            {
+              trips.filter(
+                (trip) =>
+                  trip.status ===
+                  "Completed"
+              ).length
+            }
           </strong>
         </div>
+
+        {/* CANCELLED */}
+
+        <div className="summary-item">
+          <span>Cancelled</span>
+
+          <strong>
+            {
+              trips.filter(
+                (trip) =>
+                  trip.status ===
+                  "Cancelled"
+              ).length
+            }
+          </strong>
+        </div>
+
       </div>
 
-      {/* FILTER TOOLBAR */}
+      {/* ===================================================
+          FILTER TOOLBAR
+          =================================================== */}
 
       <div className="trips-toolbar">
+
         <div className="destination-search">
           <Search size={19} />
 
@@ -895,6 +919,9 @@ function Trips() {
         </div>
 
         <div className="trips-toolbar-right">
+
+          {/* STATUS */}
+
           <select
             className="filter-select"
             value={statusFilter}
@@ -925,6 +952,8 @@ function Trips() {
             </option>
           </select>
 
+          {/* DESTINATION */}
+
           <select
             className="filter-select"
             value={destinationFilter}
@@ -949,6 +978,8 @@ function Trips() {
               )
             )}
           </select>
+
+          {/* DATE */}
 
           <select
             className="filter-select"
@@ -979,6 +1010,8 @@ function Trips() {
               Past Trips
             </option>
           </select>
+
+          {/* SORT */}
 
           <select
             className="filter-select"
@@ -1013,12 +1046,16 @@ function Trips() {
               Destination: Z-A
             </option>
           </select>
+
         </div>
       </div>
 
-      {/* PRICE FILTER */}
+      {/* ===================================================
+          PRICE FILTER
+          =================================================== */}
 
       <div className="trip-price-filters">
+
         <div className="trip-price-input">
           <label htmlFor="trip-min-price">
             Min Price
@@ -1065,11 +1102,15 @@ function Trips() {
           <RotateCcw size={16} />
           Reset Filters
         </button>
+
       </div>
 
-      {/* RESULT BAR */}
+      {/* ===================================================
+          RESULT BAR
+          =================================================== */}
 
       <div className="trips-result-bar">
+
         <span>
           {filteredTrips.length ===
           0
@@ -1086,6 +1127,7 @@ function Trips() {
         </span>
 
         <div className="view-toggle">
+
           <button
             type="button"
             className={
@@ -1117,14 +1159,19 @@ function Trips() {
           >
             <List size={18} />
           </button>
+
         </div>
       </div>
 
-      {/* RESULTS */}
+      {/* ===================================================
+          RESULTS
+          =================================================== */}
 
       {filteredTrips.length ===
       0 ? (
+
         <div className="empty-table-state">
+
           <CalendarDays size={34} />
 
           <h3>
@@ -1147,9 +1194,13 @@ function Trips() {
             <RotateCcw size={16} />
             Clear Filters
           </button>
+
         </div>
+
       ) : viewMode === "grid" ? (
+
         <div className="trips-grid">
+
           {paginatedTrips.map(
             (trip) => (
               <TripCard
@@ -1170,8 +1221,11 @@ function Trips() {
               />
             )
           )}
+
         </div>
+
       ) : (
+
         <TripTable
           trips={
             paginatedTrips
@@ -1186,88 +1240,96 @@ function Trips() {
             handleDeleteRequest
           }
         />
+
       )}
 
-      {/* PAGINATION */}
+      {/* ===================================================
+          PAGINATION
+          =================================================== */}
 
       {filteredTrips.length >
         0 &&
         totalPages > 1 && (
-          <div className="trips-pagination">
-            <button
-              type="button"
-              className="pagination-button"
-              disabled={
-                safeCurrentPage ===
-                1
-              }
-              onClick={() =>
-                setCurrentPage(
-                  (page) =>
-                    Math.max(
-                      1,
-                      page - 1
-                    )
-                )
-              }
-              aria-label="Previous page"
-            >
-              <ChevronLeft
-                size={17}
-              />
-            </button>
 
-            {Array.from(
-              {
-                length:
-                  totalPages,
-              },
-              (_, index) =>
-                index + 1
-            ).map((page) => (
-              <button
-                type="button"
-                key={page}
-                className={`pagination-number ${
-                  safeCurrentPage ===
-                  page
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() =>
-                  setCurrentPage(
-                    page
+        <div className="trips-pagination">
+
+          <button
+            type="button"
+            className="pagination-button"
+            disabled={
+              safeCurrentPage ===
+              1
+            }
+            onClick={() =>
+              setCurrentPage(
+                (page) =>
+                  Math.max(
+                    1,
+                    page - 1
                   )
-                }
-              >
-                {page}
-              </button>
-            ))}
+              )
+            }
+            aria-label="Previous page"
+          >
+            <ChevronLeft
+              size={17}
+            />
+          </button>
+
+          {Array.from(
+            {
+              length:
+                totalPages,
+            },
+            (_, index) =>
+              index + 1
+          ).map((page) => (
 
             <button
               type="button"
-              className="pagination-button"
-              disabled={
+              key={page}
+              className={`pagination-number ${
                 safeCurrentPage ===
-                totalPages
-              }
+                page
+                  ? "active"
+                  : ""
+              }`}
               onClick={() =>
                 setCurrentPage(
-                  (page) =>
-                    Math.min(
-                      totalPages,
-                      page + 1
-                    )
+                  page
                 )
               }
-              aria-label="Next page"
             >
-              <ChevronRight
-                size={17}
-              />
+              {page}
             </button>
-          </div>
-        )}
+
+          ))}
+
+          <button
+            type="button"
+            className="pagination-button"
+            disabled={
+              safeCurrentPage ===
+              totalPages
+            }
+            onClick={() =>
+              setCurrentPage(
+                (page) =>
+                  Math.min(
+                    totalPages,
+                    page + 1
+                  )
+              )
+            }
+            aria-label="Next page"
+          >
+            <ChevronRight
+              size={17}
+            />
+          </button>
+
+        </div>
+      )}
 
       {/* ===================================================
           CREATE / EDIT MODAL
@@ -1333,6 +1395,7 @@ function Trips() {
           setDeleteTarget(null)
         }
       />
+
     </div>
   );
 }
