@@ -20,20 +20,18 @@ import { useToast } from "../../context/ToastContext";
 
 const STORAGE_KEY = "travel-destinations";
 
-/*
-  Load destinations from localStorage.
+/* =========================================================
+   LOAD DESTINATIONS
+========================================================= */
 
-  Important:
-  - Existing user-created destinations are preserved.
-  - New fields from destinations.js are added when missing.
-  - We do NOT overwrite values entered by the user.
-*/
 function getSavedDestinations() {
   try {
-    const savedDestinations = localStorage.getItem(STORAGE_KEY);
+    const savedDestinations =
+      localStorage.getItem(STORAGE_KEY);
 
+    // First load
     if (!savedDestinations) {
-      const initialData = destinationsData;
+      const initialData = [...destinationsData];
 
       localStorage.setItem(
         STORAGE_KEY,
@@ -43,76 +41,97 @@ function getSavedDestinations() {
       return initialData;
     }
 
-    const parsedDestinations = JSON.parse(
-      savedDestinations
-    );
+    const parsedDestinations =
+      JSON.parse(savedDestinations);
 
+    // Invalid localStorage data
     if (!Array.isArray(parsedDestinations)) {
-      return destinationsData;
+      const initialData = [...destinationsData];
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(initialData)
+      );
+
+      return initialData;
     }
 
     /*
-      Merge the latest default destination structure
-      with the user's saved values.
+      Merge saved destinations with latest destinations.js.
 
-      User-entered values always have priority.
+      Existing user changes are preserved.
+      New default destinations are automatically added.
     */
-    const mergedDestinations = parsedDestinations.map(
-      (savedDestination) => {
-        const defaultDestination =
-          destinationsData.find(
-            (item) =>
-              item.id === savedDestination.id ||
-              item.name?.toLowerCase() ===
-                savedDestination.name?.toLowerCase()
-          );
 
-        if (!defaultDestination) {
-          return savedDestination;
+    const mergedDestinations =
+      parsedDestinations.map(
+        (savedDestination) => {
+          const defaultDestination =
+            destinationsData.find(
+              (destination) =>
+                destination.id ===
+                  savedDestination.id ||
+                destination.name?.toLowerCase() ===
+                  savedDestination.name?.toLowerCase()
+            );
+
+          if (!defaultDestination) {
+            return savedDestination;
+          }
+
+          return {
+            ...defaultDestination,
+            ...savedDestination,
+          };
         }
+      );
 
-        return {
-          ...defaultDestination,
-          ...savedDestination,
-        };
-      }
-    );
-
-    /*
-      Add new destinations from destinations.js
-      if they do not already exist in localStorage.
-    */
+    // IDs already saved
     const savedIds = new Set(
       mergedDestinations.map(
         (destination) => destination.id
       )
     );
 
+    // Names already saved
     const savedNames = new Set(
-      mergedDestinations.map((destination) =>
-        destination.name?.toLowerCase()
-      )
+      mergedDestinations
+        .map(
+          (destination) =>
+            destination.name?.toLowerCase()
+        )
+        .filter(Boolean)
     );
 
+    /*
+      Add destinations from destinations.js
+      that are missing in localStorage.
+    */
+
     const newDefaultDestinations =
-      destinationsData.filter((destination) => {
-        const existsById = savedIds.has(destination.id);
+      destinationsData.filter(
+        (destination) => {
+          const existsById =
+            savedIds.has(destination.id);
 
-        const existsByName = savedNames.has(
-          destination.name?.toLowerCase()
-        );
+          const existsByName =
+            savedNames.has(
+              destination.name?.toLowerCase()
+            );
 
-        return !existsById && !existsByName;
-      });
+          return (
+            !existsById &&
+            !existsByName
+          );
+        }
+      );
 
     const finalDestinations = [
       ...mergedDestinations,
       ...newDefaultDestinations,
     ];
 
-    /*
-      Update localStorage with the merged data.
-    */
+    // Save updated destination list
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(finalDestinations)
@@ -125,23 +144,29 @@ function getSavedDestinations() {
       error
     );
 
-    return destinationsData;
+    return [...destinationsData];
   }
 }
 
-function Destinations() {
-  const [destinations, setDestinations] = useState(
-    getSavedDestinations
-  );
+/* =========================================================
+   DESTINATIONS PAGE
+========================================================= */
 
-  const [searchTerm, setSearchTerm] = useState("");
+function Destinations() {
+  const [destinations, setDestinations] =
+    useState(getSavedDestinations);
+
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
   const [statusFilter, setStatusFilter] =
     useState("All");
 
-  const [viewMode, setViewMode] = useState("grid");
+  const [viewMode, setViewMode] =
+    useState("grid");
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] =
+    useState(false);
 
   const [editingDestination, setEditingDestination] =
     useState(null);
@@ -151,14 +176,13 @@ function Destinations() {
 
   const { showToast } = useToast();
 
-  /*
-    Save destinations everywhere.
+  /* =======================================================
+     SAVE DESTINATIONS
+  ======================================================= */
 
-    This event allows Header / BookingForm
-    and other components to know that destination
-    data has changed.
-  */
-  const saveDestinations = (updatedDestinations) => {
+  const saveDestinations = (
+    updatedDestinations
+  ) => {
     setDestinations(updatedDestinations);
 
     try {
@@ -168,7 +192,9 @@ function Destinations() {
       );
 
       window.dispatchEvent(
-        new Event("travel-destinations-updated")
+        new Event(
+          "travel-destinations-updated"
+        )
       );
     } catch (error) {
       console.error(
@@ -178,116 +204,142 @@ function Destinations() {
     }
   };
 
-  const popularCount = destinations.filter(
-    (destination) =>
-      destination.category === "Popular"
-  ).length;
+  /* =======================================================
+     CATEGORY COUNTS
+  ======================================================= */
 
-  const trendingCount = destinations.filter(
-    (destination) =>
-      destination.category === "Trending"
-  ).length;
+  const popularCount =
+    destinations.filter(
+      (destination) =>
+        destination.category === "Popular"
+    ).length;
 
-  const luxuryCount = destinations.filter(
-    (destination) =>
-      destination.category === "Luxury"
-  ).length;
+  const trendingCount =
+    destinations.filter(
+      (destination) =>
+        destination.category === "Trending"
+    ).length;
 
-  const newCount = destinations.filter(
-    (destination) =>
-      destination.category === "New"
-  ).length;
+  const luxuryCount =
+    destinations.filter(
+      (destination) =>
+        destination.category === "Luxury"
+    ).length;
 
-  /*
-    Search destinations.
-  */
-  const filteredDestinations = useMemo(() => {
-    const search = searchTerm
-      .toLowerCase()
-      .trim();
+  const newCount =
+    destinations.filter(
+      (destination) =>
+        destination.category === "New"
+    ).length;
 
-    return destinations.filter((destination) => {
-      const name = String(
-        destination.name || ""
-      ).toLowerCase();
+  /* =======================================================
+     SEARCH + FILTER
+  ======================================================= */
 
-      const country = String(
-        destination.country || ""
-      ).toLowerCase();
+  const filteredDestinations =
+    useMemo(() => {
+      const search =
+        searchTerm
+          .toLowerCase()
+          .trim();
 
-      const matchesSearch =
-        !search ||
-        name.includes(search) ||
-        country.includes(search);
+      return destinations.filter(
+        (destination) => {
+          const name =
+            String(
+              destination.name || ""
+            ).toLowerCase();
 
-      const matchesStatus =
-        statusFilter === "All" ||
-        destination.category === statusFilter;
+          const country =
+            String(
+              destination.country || ""
+            ).toLowerCase();
 
-      return (
-        matchesSearch &&
-        matchesStatus
+          const category =
+            String(
+              destination.category || ""
+            ).toLowerCase();
+
+          const matchesSearch =
+            !search ||
+            name.includes(search) ||
+            country.includes(search) ||
+            category.includes(search);
+
+          const matchesStatus =
+            statusFilter === "All" ||
+            destination.category ===
+              statusFilter;
+
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
       );
-    });
-  }, [
-    destinations,
-    searchTerm,
-    statusFilter,
-  ]);
+    }, [
+      destinations,
+      searchTerm,
+      statusFilter,
+    ]);
 
-  /*
-    Add destination.
-  */
+  /* =======================================================
+     ADD
+  ======================================================= */
+
   const handleAdd = () => {
     setEditingDestination(null);
     setShowForm(true);
   };
 
-  /*
-    Edit destination.
-  */
-  const handleEdit = (destination) => {
-    setEditingDestination(destination);
+  /* =======================================================
+     EDIT
+  ======================================================= */
+
+  const handleEdit = (
+    destination
+  ) => {
+    setEditingDestination(
+      destination
+    );
+
     setShowForm(true);
   };
 
-  /*
-    Save Add/Edit destination.
+  /* =======================================================
+     ADD / EDIT SUBMIT
+  ======================================================= */
 
-    This keeps ALL fields from DestinationForm,
-    including:
-    - amount
-    - price
-    - duration
-    - startDate
-    - endDate
-    - category
-    - description
-    - image
-    - rating
-    - status
-  */
-  const handleFormSubmit = (formData) => {
+  const handleFormSubmit = (
+    formData
+  ) => {
+    // EDIT
     if (editingDestination) {
       const updatedDestinations =
-        destinations.map((destination) =>
-          destination.id ===
-          editingDestination.id
-            ? {
-                ...destination,
-                ...formData,
-                id: editingDestination.id,
-              }
-            : destination
+        destinations.map(
+          (destination) =>
+            destination.id ===
+            editingDestination.id
+              ? {
+                  ...destination,
+                  ...formData,
+                  id: editingDestination.id,
+                }
+              : destination
         );
 
-      saveDestinations(updatedDestinations);
+      saveDestinations(
+        updatedDestinations
+      );
 
       showToast(
         "Destination updated successfully.",
         "success"
       );
-    } else {
+    }
+
+    // ADD
+    else {
       const newDestination = {
         ...formData,
         id: Date.now(),
@@ -298,7 +350,9 @@ function Destinations() {
         newDestination,
       ];
 
-      saveDestinations(updatedDestinations);
+      saveDestinations(
+        updatedDestinations
+      );
 
       showToast(
         "Destination added successfully.",
@@ -310,26 +364,35 @@ function Destinations() {
     setEditingDestination(null);
   };
 
-  /*
-    Ask before deleting.
-  */
-  const handleDeleteRequest = (destination) => {
+  /* =======================================================
+     DELETE REQUEST
+  ======================================================= */
+
+  const handleDeleteRequest = (
+    destination
+  ) => {
     setDeleteTarget(destination);
   };
 
-  /*
-    Delete destination.
-  */
+  /* =======================================================
+     DELETE
+  ======================================================= */
+
   const handleDelete = () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
 
     const updatedDestinations =
       destinations.filter(
         (destination) =>
-          destination.id !== deleteTarget.id
+          destination.id !==
+          deleteTarget.id
       );
 
-    saveDestinations(updatedDestinations);
+    saveDestinations(
+      updatedDestinations
+    );
 
     showToast(
       "Destination deleted successfully.",
@@ -339,18 +402,26 @@ function Destinations() {
     setDeleteTarget(null);
   };
 
-  /*
-    Close form.
-  */
+  /* =======================================================
+     CLOSE FORM
+  ======================================================= */
+
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingDestination(null);
   };
 
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
   return (
     <div className="destinations-page">
 
-      {/* PAGE HEADER */}
+      {/* ===============================================
+          PAGE HEADER
+      =============================================== */}
+
       <div className="page-header">
         <div>
           <p className="page-breadcrumb">
@@ -360,8 +431,8 @@ function Destinations() {
           <h2>Destinations</h2>
 
           <p className="page-description">
-            Explore and manage all your travel
-            destinations.
+            Explore and manage all your
+            travel destinations.
           </p>
         </div>
 
@@ -375,8 +446,13 @@ function Destinations() {
         </button>
       </div>
 
-      {/* DESTINATION CATEGORIES */}
+      {/* ===============================================
+          DESTINATION SUMMARY
+      =============================================== */}
+
       <div className="destination-summary">
+
+        {/* POPULAR */}
 
         <button
           type="button"
@@ -387,7 +463,8 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter === "Popular"
+              statusFilter ===
+                "Popular"
                 ? "All"
                 : "Popular"
             )
@@ -399,9 +476,13 @@ function Destinations() {
 
           <div>
             <span>Popular</span>
-            <strong>{popularCount}</strong>
+            <strong>
+              {popularCount}
+            </strong>
           </div>
         </button>
+
+        {/* TRENDING */}
 
         <button
           type="button"
@@ -412,7 +493,8 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter === "Trending"
+              statusFilter ===
+                "Trending"
                 ? "All"
                 : "Trending"
             )
@@ -424,9 +506,13 @@ function Destinations() {
 
           <div>
             <span>Trending</span>
-            <strong>{trendingCount}</strong>
+            <strong>
+              {trendingCount}
+            </strong>
           </div>
         </button>
+
+        {/* LUXURY */}
 
         <button
           type="button"
@@ -437,7 +523,8 @@ function Destinations() {
           }`}
           onClick={() =>
             setStatusFilter(
-              statusFilter === "Luxury"
+              statusFilter ===
+                "Luxury"
                 ? "All"
                 : "Luxury"
             )
@@ -449,9 +536,13 @@ function Destinations() {
 
           <div>
             <span>Luxury</span>
-            <strong>{luxuryCount}</strong>
+            <strong>
+              {luxuryCount}
+            </strong>
           </div>
         </button>
+
+        {/* NEW */}
 
         <button
           type="button"
@@ -474,13 +565,18 @@ function Destinations() {
 
           <div>
             <span>New</span>
-            <strong>{newCount}</strong>
+            <strong>
+              {newCount}
+            </strong>
           </div>
         </button>
 
       </div>
 
-      {/* SEARCH + VIEW */}
+      {/* ===============================================
+          SEARCH + FILTER + VIEW
+      =============================================== */}
+
       <div className="destination-toolbar">
 
         <div className="destination-search">
@@ -567,10 +663,15 @@ function Destinations() {
         </div>
       </div>
 
-      {/* DESTINATION RESULTS */}
-      {filteredDestinations.length === 0 ? (
+      {/* ===============================================
+          RESULTS
+      =============================================== */}
+
+      {filteredDestinations.length ===
+      0 ? (
 
         <div className="empty-table-state">
+
           <Search size={34} />
 
           <h3>
@@ -578,50 +679,70 @@ function Destinations() {
           </h3>
 
           <p>
-            Try changing your search or category.
+            Try changing your search
+            or category.
           </p>
+
         </div>
 
       ) : viewMode === "grid" ? (
 
         <div className="destination-grid">
+
           {filteredDestinations.map(
             (destination) => (
               <DestinationCard
                 key={destination.id}
                 destination={destination}
                 onEdit={handleEdit}
-                onDelete={handleDeleteRequest}
+                onDelete={
+                  handleDeleteRequest
+                }
               />
             )
           )}
+
         </div>
 
       ) : (
 
         <DestinationTable
-          destinations={filteredDestinations}
+          destinations={
+            filteredDestinations
+          }
           onEdit={handleEdit}
-          onDelete={handleDeleteRequest}
+          onDelete={
+            handleDeleteRequest
+          }
         />
 
       )}
 
-      {/* ADD / EDIT MODAL */}
+      {/* ===============================================
+          ADD / EDIT MODAL
+      =============================================== */}
+
       <Modal
         isOpen={showForm}
         onClose={handleCloseForm}
       >
         <DestinationForm
-          destination={editingDestination}
+          destination={
+            editingDestination
+          }
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}
         />
       </Modal>
 
-      {/* DELETE MODAL */}
+      {/* ===============================================
+          DELETE MODAL
+      =============================================== */}
+
       <ConfirmModal
-        isOpen={Boolean(deleteTarget)}
+        isOpen={Boolean(
+          deleteTarget
+        )}
         title="Delete Destination"
         message={
           deleteTarget
